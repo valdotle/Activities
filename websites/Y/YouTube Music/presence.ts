@@ -170,7 +170,7 @@ presence.on('UpdateData', async () => {
               ? 'On loop'
               : 'Playlist on loop',
         }
-        : showCover ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: 'with YouTube Music' } : null),
+        : showCover ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: activityDisplay !== StatusDisplayTypes.Website ? 'with YouTube Music' : null } : null),
       ...(showTimestamps
         && mediaSession.playbackState === 'playing' && {
         startTimestamp: mediaTimestamps[0],
