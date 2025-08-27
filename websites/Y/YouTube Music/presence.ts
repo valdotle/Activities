@@ -9,6 +9,18 @@ enum ActivityAssets {
   SmallLogo = `https://cdn.rcd.gg/PreMiD/websites/Y/YouTube%20Music/assets/0.png`,
 }
 
+/*const StatusDisplayTypes: Map<String, StatusDisplayType> = new Map([
+  ["Artist", StatusDisplayType.State],
+  ["YouTube Music", StatusDisplayType.Name],
+  ["Title", StatusDisplayType.Details]],
+)*/
+
+enum StatusDisplayTypes {
+  Artist,
+  Title,
+  Website,
+}
+
 let prevTitleAuthor = ''
 let presenceData: PresenceData
 let mediaTimestamps: [number, number]
@@ -27,8 +39,7 @@ presence.on('UpdateData', async () => {
     showBrowsing,
     privacyMode,
     useTimeLeft,
-    showAsListening,
-    artistAsTitle,
+    activityDisplay
   ] = await Promise.all([
     presence.getSetting<boolean>('buttons'),
     presence.getSetting<boolean>('timestamps'),
@@ -37,8 +48,7 @@ presence.on('UpdateData', async () => {
     presence.getSetting<boolean>('browsing'),
     presence.getSetting<boolean>('privacy'),
     presence.getSetting<boolean>('useTimeLeft'),
-    presence.getSetting<boolean>('showAsListening'),
-    presence.getSetting<boolean>('artistAsTitle'),
+    presence.getSetting<StatusDisplayTypes>('activityDisplay'),
   ])
   const { mediaSession } = navigator
   const watchID = href.match(/v=([^&#]{5,})/)?.[1]
@@ -50,6 +60,8 @@ presence.on('UpdateData', async () => {
     .querySelector('ytmusic-player-bar[slot="player-bar"]')
     ?.getAttribute('repeat-mode')
   const videoElement = document.querySelector<HTMLMediaElement>('.video-stream')
+  const titleUrl = `https://music.youtube.com/watch?v=${watchID}`
+  //const statusDisplayType = StatusDisplayTypes.get(activityDisplay)
 
   if (useTimeLeftChanged !== useTimeLeft && !privacyMode) {
     useTimeLeftChanged = useTimeLeft
@@ -118,7 +130,7 @@ presence.on('UpdateData', async () => {
     const buttons: [ButtonData, ButtonData?] = [
       {
         label: 'Listen Along',
-        url: `https://music.youtube.com/watch?v=${watchID}`,
+        url: titleUrl,
       },
     ]
 
@@ -131,34 +143,34 @@ presence.on('UpdateData', async () => {
 
     presenceData = {
       type: ActivityType.Listening,
-      name: artistAsTitle ? mediaSession.metadata.artist : showAsListening ? mediaSession.metadata.title : 'YouTube Music',
-      largeImageKey: showCover
-        ? mediaSession?.metadata?.artwork?.at(-1)?.src
-        ?? ActivityAssets.Logo
-        : ActivityAssets.Logo,
-      details: mediaSession.metadata.title,
-      state: !artistAsTitle ? mediaSession.metadata.artist : '',
-      ...(mediaSession.metadata.album && {
-        largeImageText: mediaSession.metadata.album,
+      name: activityDisplay === StatusDisplayTypes.Artist ? mediaSession.metadata.artist : activityDisplay === StatusDisplayTypes.Title ? mediaSession.metadata.title : 'YouTube Music',
+      details: activityDisplay === StatusDisplayTypes.Title ? mediaSession.metadata.artist : mediaSession.metadata.title,
+      state: activityDisplay === StatusDisplayTypes.Website ? `by ${mediaSession.metadata.artist}` : mediaSession.metadata.album ? `on ${mediaSession.metadata.album}` : null,
+      ...(((activityDisplay === StatusDisplayTypes.Website && mediaSession.metadata.album) || (activityDisplay !== StatusDisplayTypes.Website && !showCover)) && {
+        largeImageText: activityDisplay === StatusDisplayTypes.Website ? `on ${mediaSession.metadata.album}` : 'with YouTube Music'
       }),
       ...(showButtons && {
         buttons,
       }),
+      largeImageKey: showCover
+        ? mediaSession?.metadata?.artwork?.at(-1)?.src
+        ?? ActivityAssets.Logo
+        : ActivityAssets.Logo,
       ...(mediaSession.playbackState === 'paused'
         || (repeatMode && repeatMode !== 'NONE')
         ? {
-            smallImageKey: mediaSession.playbackState === 'paused'
-              ? Assets.Pause
-              : repeatMode === 'ONE'
-                ? Assets.RepeatOne
-                : Assets.Repeat,
-            smallImageText: mediaSession.playbackState === 'paused'
-              ? 'Paused'
-              : repeatMode === 'ONE'
-                ? 'On loop'
-                : 'Playlist on loop',
-          }
-        : null),
+          smallImageKey: mediaSession.playbackState === 'paused'
+            ? Assets.Pause
+            : repeatMode === 'ONE'
+              ? Assets.RepeatOne
+              : Assets.Repeat,
+          smallImageText: mediaSession.playbackState === 'paused'
+            ? 'Paused'
+            : repeatMode === 'ONE'
+              ? 'On loop'
+              : 'Playlist on loop',
+        }
+        : showCover ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: 'with YouTube Music' } : null),
       ...(showTimestamps
         && mediaSession.playbackState === 'playing' && {
         startTimestamp: mediaTimestamps[0],

@@ -37,22 +37,14 @@
       "value": false
     },
     {
-      "id": "showAsListening",
-      "title": "Show song in status",
+      "id": "activityDisplay",
+      "title": "Listening to...",
       "icon": "fad fa-music",
       "if": {
         "privacy": false
-      },
-      "value": false
-    },
-    {
-      "id": "artistAsTitle",
-      "if": {
-        "privacy": false
-      },
-      "title": "Show Artist as Title",
-      "icon": "fad fa-user-large",
-      "value": true
+      },      
+      "value": 0,
+      "values": ["Artist","Title","YouTube Music"]
     },
     {
       "id": "cover",
