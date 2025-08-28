@@ -28,6 +28,7 @@ let oldPath: string
 let startTimestamp: number
 let videoListenerAttached = false
 let useTimeLeftChanged = false
+let prevAlbum = ''
 
 presence.on('UpdateData', async () => {
   const { pathname, search, href } = document.location
@@ -35,19 +36,21 @@ presence.on('UpdateData', async () => {
     showButtons,
     showTimestamps,
     showCover,
-    hidePaused,
+    showPaused,
     showBrowsing,
     privacyMode,
     useTimeLeft,
+    hideYTM,
     activityDisplay
   ] = await Promise.all([
     presence.getSetting<boolean>('buttons'),
     presence.getSetting<boolean>('timestamps'),
     presence.getSetting<boolean>('cover'),
-    presence.getSetting<boolean>('hidePaused'),
+    presence.getSetting<boolean>('showPaused'),
     presence.getSetting<boolean>('browsing'),
     presence.getSetting<boolean>('privacy'),
     presence.getSetting<boolean>('useTimeLeft'),
+    presence.getSetting<boolean>('hideYTM'),
     presence.getSetting<StatusDisplayTypes>('activityDisplay'),
   ])
   const { mediaSession } = navigator
@@ -61,7 +64,6 @@ presence.on('UpdateData', async () => {
     ?.getAttribute('repeat-mode')
   const videoElement = document.querySelector<HTMLMediaElement>('.video-stream')
   const titleUrl = `https://music.youtube.com/watch?v=${watchID}`
-  //const statusDisplayType = StatusDisplayTypes.get(activityDisplay)
 
   if (useTimeLeftChanged !== useTimeLeft && !privacyMode) {
     useTimeLeftChanged = useTimeLeft
@@ -88,7 +90,7 @@ presence.on('UpdateData', async () => {
 
   presenceData = {}
 
-  if (hidePaused && mediaSession?.playbackState !== 'playing')
+  if (!showPaused && mediaSession?.playbackState !== 'playing')
     return presence.clearActivity()
 
   if (['playing', 'paused'].includes(mediaSession?.playbackState)) {
@@ -124,9 +126,19 @@ presence.on('UpdateData', async () => {
           ?.trim()
     }
 
-    const albumArtistBtnLink = mediaSession?.metadata?.album
-      ? [...document.querySelectorAll<HTMLAnchorElement>('.byline a')]?.at(-1)?.href
-      : document.querySelector<HTMLAnchorElement>('.byline a')?.href
+
+    if ([...document.querySelectorAll<HTMLAnchorElement>('.byline a')]?.length > 0) {
+
+    }
+
+    const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.byline a')]
+
+    const [artistLink, albumLink] = [navLinks?.at(0)?.href, navLinks?.length > 1 ? navLinks?.at(-1)?.href : undefined]
+
+    if (albumLink && albumLink !== prevAlbum) {
+      prevAlbum = albumLink
+    }
+
     const buttons: [ButtonData, ButtonData?] = [
       {
         label: 'Listen Along',
@@ -134,10 +146,15 @@ presence.on('UpdateData', async () => {
       },
     ]
 
-    if (albumArtistBtnLink) {
+    if (artistLink && activityDisplay === StatusDisplayTypes.Artist) {
       buttons.push({
-        label: `View ${mediaSession.metadata.album ? 'Album' : 'Artist'}`,
-        url: albumArtistBtnLink,
+        label: `View Artist`,
+        url: artistLink,
+      })
+    } else if (albumLink && activityDisplay !== StatusDisplayTypes.Artist) {
+      buttons.push({
+        label: `View Album`,
+        url: albumLink,
       })
     }
 
@@ -152,6 +169,9 @@ presence.on('UpdateData', async () => {
       ...(showButtons && {
         buttons,
       }),
+      //statusDisplayType: StatusDisplayType.Details,
+      detailsUrl: activityDisplay !== StatusDisplayTypes.Title ? titleUrl : artistLink,
+      ...((albumLink || activityDisplay === StatusDisplayTypes.Website) && { stateUrl: activityDisplay === StatusDisplayTypes.Website ? artistLink : albumLink }),
       largeImageKey: showCover
         ? mediaSession?.metadata?.artwork?.at(-1)?.src
         ?? ActivityAssets.Logo
@@ -170,7 +190,7 @@ presence.on('UpdateData', async () => {
               ? 'On loop'
               : 'Playlist on loop',
         }
-        : showCover ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: activityDisplay !== StatusDisplayTypes.Website ? 'with YouTube Music' : null } : null),
+        : showCover && !hideYTM ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: activityDisplay !== StatusDisplayTypes.Website ? 'YouTube Music' : null } : null),
       ...(showTimestamps
         && mediaSession.playbackState === 'playing' && {
         startTimestamp: mediaTimestamps[0],
@@ -204,21 +224,22 @@ presence.on('UpdateData', async () => {
     if (pathname === '/explore')
       presenceData.details = 'Browsing Explore'
 
-    if (pathname.match(/\/library\//)) {
+    if (pathname.startsWith('/library')) {
       presenceData.details = 'Browsing Library'
       presenceData.state = document.querySelector(
         '#tabs .iron-selected .tab',
       )?.textContent
     }
 
-    if (pathname.match(/^\/playlist/)) {
+    if (pathname.startsWith('/playlist')) {
       presenceData.details = 'Browsing Playlist'
 
       if (search === '?list=LM') {
         presenceData.state = 'Liked Music'
       }
       else {
-        presenceData.state = document.querySelector('.metadata .title')?.textContent
+        presenceData.state = document.querySelector('#contents > ytmusic-responsive-header-renderer > h1 > yt-formatted-string')?.textContent
+        presenceData.stateUrl = href
 
         presenceData.buttons = [
           {
@@ -228,11 +249,11 @@ presence.on('UpdateData', async () => {
         ]
       }
 
-      presenceData.largeImageKey = document.querySelector<HTMLImageElement>('#thumbnail img')?.src
+      presenceData.largeImageKey = document.querySelector<HTMLImageElement>('.thumbnail >.image > img')?.src
       presenceData.smallImageKey = ActivityAssets.SmallLogo
     }
 
-    if (pathname.match(/^\/search/)) {
+    if (pathname.startsWith("/search")) {
       presenceData.details = 'Searching'
       presenceData.state = document.querySelector<HTMLInputElement>(
         '.search-container input',
@@ -246,7 +267,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.match(/^\/channel/)) {
+    if (pathname.startsWith("/channel")) {
       presenceData.details = 'Browsing Channel'
       presenceData.state = document.querySelector('#header .title')?.textContent
 
@@ -258,7 +279,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.match(/^\/new_releases/)) {
+    if (pathname.match("/new_releases")) {
       presenceData.details = 'Browsing New Releases'
 
       presenceData.buttons = [
@@ -269,7 +290,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.match(/^\/charts/)) {
+    if (pathname.startsWith("/charts")) {
       presenceData.details = 'Browsing Charts'
 
       presenceData.buttons = [
@@ -280,7 +301,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.match(/^\/moods_and_genres/)) {
+    if (pathname.startsWith("/moods_and_genres")) {
       presenceData.details = 'Browsing Moods & Genres'
 
       presenceData.buttons = [
@@ -290,6 +311,10 @@ presence.on('UpdateData', async () => {
         },
       ]
     }
+  }
+
+  if (!presenceData.largeImageKey){
+    presenceData.smallImageKey = null
   }
 
   presence.setActivity(presenceData)

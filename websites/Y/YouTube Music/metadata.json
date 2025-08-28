@@ -80,9 +80,18 @@
       "value": true
     },
     {
-      "id": "hidePaused",
-      "title": "Hide Paused",
+      "id": "showPaused",
+      "title": "Show Paused",
       "icon": "fad fa-pause-circle",
+      "value": true,
+      "if": {
+        "privacy": false
+      }
+    },
+    {
+      "id": "hideYTM",
+      "title": "Hide YouTube Music Icon",
+      "icon": "fad fa-circle-play",
       "value": false,
       "if": {
         "privacy": false
