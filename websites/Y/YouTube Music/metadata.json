@@ -42,9 +42,9 @@
       "icon": "fad fa-music",
       "if": {
         "privacy": false
-      },      
+      },
       "value": 0,
-      "values": ["Artist","Title","YouTube Music"]
+      "values": ["Artist", "Title", "YouTube Music"]
     },
     {
       "id": "cover",

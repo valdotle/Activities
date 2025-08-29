@@ -9,11 +9,13 @@ enum ActivityAssets {
   SmallLogo = `https://cdn.rcd.gg/PreMiD/websites/Y/YouTube%20Music/assets/0.png`,
 }
 
-/*const StatusDisplayTypes: Map<String, StatusDisplayType> = new Map([
-  ["Artist", StatusDisplayType.State],
+/*
+  const StatusDisplayTypes: Map<String, StatusDisplayType> = new Map([
+  ['Artist', StatusDisplayType.State],
   ["YouTube Music", StatusDisplayType.Name],
-  ["Title", StatusDisplayType.Details]],
-)*/
+  ['Title', StatusDisplayType.Details]],
+)
+  */
 
 enum StatusDisplayTypes {
   Artist,
@@ -41,7 +43,7 @@ presence.on('UpdateData', async () => {
     privacyMode,
     useTimeLeft,
     hideYTM,
-    activityDisplay
+    activityDisplay,
   ] = await Promise.all([
     presence.getSetting<boolean>('buttons'),
     presence.getSetting<boolean>('timestamps'),
@@ -126,14 +128,14 @@ presence.on('UpdateData', async () => {
           ?.trim()
     }
 
-
-    if ([...document.querySelectorAll<HTMLAnchorElement>('.byline a')]?.length > 0) {
-
-    }
-
     const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.byline a')]
 
-    const [artistLink, albumLink] = [navLinks?.at(0)?.href, navLinks?.length > 1 ? navLinks?.at(-1)?.href : undefined]
+    const [artistLink, albumLink] = [
+      navLinks?.at(0)?.href,
+      navLinks?.length > 1
+        ? navLinks?.at(-1)?.href
+        : undefined,
+    ]
 
     if (albumLink && albumLink !== prevAlbum) {
       prevAlbum = albumLink
@@ -151,7 +153,8 @@ presence.on('UpdateData', async () => {
         label: `View Artist`,
         url: artistLink,
       })
-    } else if (albumLink && activityDisplay !== StatusDisplayTypes.Artist) {
+    }
+    else if (albumLink && activityDisplay !== StatusDisplayTypes.Artist) {
       buttons.push({
         label: `View Album`,
         url: albumLink,
@@ -160,24 +163,38 @@ presence.on('UpdateData', async () => {
 
     presenceData = {
       type: ActivityType.Listening,
-      name: activityDisplay === StatusDisplayTypes.Artist ? mediaSession.metadata.artist : activityDisplay === StatusDisplayTypes.Title ? mediaSession.metadata.title : 'YouTube Music',
-      details: activityDisplay === StatusDisplayTypes.Title ? mediaSession.metadata.artist : mediaSession.metadata.title,
-      state: activityDisplay === StatusDisplayTypes.Website ? `by ${mediaSession.metadata.artist}` : mediaSession.metadata.album ? `on ${mediaSession.metadata.album}` : null,
+      name: activityDisplay === StatusDisplayTypes.Artist
+        ? mediaSession.metadata.artist
+        : activityDisplay === StatusDisplayTypes.Title
+          ? mediaSession.metadata.title
+          : 'YouTube Music',
+      details: activityDisplay === StatusDisplayTypes.Title
+        ? mediaSession.metadata.artist
+        : mediaSession.metadata.title,
+      state: activityDisplay === StatusDisplayTypes.Website
+        ? `by ${mediaSession.metadata.artist}`
+        : mediaSession.metadata.album
+          ? `on ${mediaSession.metadata.album}`
+          : null,
       ...(((activityDisplay === StatusDisplayTypes.Website && mediaSession.metadata.album) || (activityDisplay !== StatusDisplayTypes.Website && !showCover)) && {
-        largeImageText: activityDisplay === StatusDisplayTypes.Website ? `on ${mediaSession.metadata.album}` : 'with YouTube Music'
+        largeImageText: activityDisplay === StatusDisplayTypes.Website
+          ? `on ${mediaSession.metadata.album}`
+          : 'with YouTube Music',
       }),
       ...(showButtons && {
         buttons,
       }),
-      //statusDisplayType: StatusDisplayType.Details,
-      detailsUrl: activityDisplay !== StatusDisplayTypes.Title ? titleUrl : artistLink,
-      ...((albumLink || activityDisplay === StatusDisplayTypes.Website) && { stateUrl: activityDisplay === StatusDisplayTypes.Website ? artistLink : albumLink }),
+      // statusDisplayType: StatusDisplayType.Details,
+      detailsUrl: activityDisplay !== StatusDisplayTypes.Title
+        ? titleUrl
+        : artistLink,
+      ...((albumLink || activityDisplay === StatusDisplayTypes.Website) && {
+        stateUrl: activityDisplay === StatusDisplayTypes.Website ? artistLink : albumLink,
+      }),
       largeImageKey: showCover
-        ? mediaSession?.metadata?.artwork?.at(-1)?.src
-        ?? ActivityAssets.Logo
+        ? mediaSession?.metadata?.artwork?.at(-1)?.src ?? ActivityAssets.Logo
         : ActivityAssets.Logo,
-      ...(mediaSession.playbackState === 'paused'
-        || (repeatMode && repeatMode !== 'NONE')
+      ...(mediaSession.playbackState === 'paused' || (repeatMode && repeatMode !== 'NONE')
         ? {
           smallImageKey: mediaSession.playbackState === 'paused'
             ? Assets.Pause
@@ -190,9 +207,16 @@ presence.on('UpdateData', async () => {
               ? 'On loop'
               : 'Playlist on loop',
         }
-        : showCover && !hideYTM ? { smallImageKey: ActivityAssets.SmallLogo, smallImageText: activityDisplay !== StatusDisplayTypes.Website ? 'YouTube Music' : null } : null),
-      ...(showTimestamps
-        && mediaSession.playbackState === 'playing' && {
+        : showCover && !hideYTM
+          ? {
+            smallImageKey: ActivityAssets.SmallLogo,
+            smallImageText: activityDisplay !== StatusDisplayTypes.Website
+              ? 'YouTube Music'
+              : null,
+          }
+          : null
+      ),
+      ...(showTimestamps && mediaSession.playbackState === 'playing' && {
         startTimestamp: mediaTimestamps[0],
         endTimestamp: mediaTimestamps[1],
       }),
@@ -253,7 +277,7 @@ presence.on('UpdateData', async () => {
       presenceData.smallImageKey = ActivityAssets.SmallLogo
     }
 
-    if (pathname.startsWith("/search")) {
+    if (pathname.startsWith('/search')) {
       presenceData.details = 'Searching'
       presenceData.state = document.querySelector<HTMLInputElement>(
         '.search-container input',
@@ -267,7 +291,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.startsWith("/channel")) {
+    if (pathname.startsWith('/channel')) {
       presenceData.details = 'Browsing Channel'
       presenceData.state = document.querySelector('#header .title')?.textContent
 
@@ -279,7 +303,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.match("/new_releases")) {
+    if (pathname.match('/new_releases')) {
       presenceData.details = 'Browsing New Releases'
 
       presenceData.buttons = [
@@ -290,7 +314,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.startsWith("/charts")) {
+    if (pathname.startsWith('/charts')) {
       presenceData.details = 'Browsing Charts'
 
       presenceData.buttons = [
@@ -301,7 +325,7 @@ presence.on('UpdateData', async () => {
       ]
     }
 
-    if (pathname.startsWith("/moods_and_genres")) {
+    if (pathname.startsWith('/moods_and_genres')) {
       presenceData.details = 'Browsing Moods & Genres'
 
       presenceData.buttons = [
@@ -313,7 +337,7 @@ presence.on('UpdateData', async () => {
     }
   }
 
-  if (!presenceData.largeImageKey){
+  if (!presenceData.largeImageKey) {
     presenceData.smallImageKey = null
   }
 
